@@ -23,7 +23,7 @@ export function mapStyle() {
       sat: { type: 'raster', tileSize: 256, maxzoom: 19, tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], attribution: 'Esri, Maxar, Earthstar Geographics' },
       dark: { type: 'raster', tileSize: 256, maxzoom: 19, tiles: ['https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'], attribution: '© OpenStreetMap, © CARTO' },
       dem,
-      'dem-hs': { ...dem, attribution: undefined },
+      'dem-hs': { type: 'raster-dem', encoding: 'terrarium', tileSize: 256, maxzoom: 15, tiles: dem.tiles },
     },
     layers: [
       { id: 'bg', type: 'background', paint: { 'background-color': '#0b0f14' } },
@@ -69,7 +69,14 @@ export class TrackMap {
     this.map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
     // Trasa a značky sa pridajú hneď po načítaní štýlu. Udalosť 'load' čaká na stiahnutie VŠETKÝCH dlaždíc,
     // takže pri blokovanej/pomalej sieti by sa nikdy nespustila a mapa by ostala prázdna.
-    const init = () => { if (this.initDone) return; this.initDone = true; this.onLoad(); };
+    const init = () => {
+      if (this.initDone) return;
+      this.initDone = true;
+      try { this.onLoad(); } catch (err) {
+        console.error(err);
+        this.onProblem && this.onProblem('style', null, err.message);
+      }
+    };
     this.map.on('style.load', init);
     this.map.on('styledata', () => { if (!this.initDone && this.map.getLayer && this.map.getLayer('hills')) init(); });
     this.map.on('load', init);
@@ -80,6 +87,10 @@ export class TrackMap {
     }, 8000);
     this.map.on('error', (e) => {
       if (e && e.error) { console.warn('Mapa:', e.error.message); this.lastErr = e.error.message; }
+      if (e && e.error && !e.sourceId && !this.styleErrShown) {
+        this.styleErrShown = true;
+        this.onProblem && this.onProblem('style', null, e.error.message);
+      }
       if (e && e.sourceId && ['osm', 'sat', 'dark', 'dem', 'dem-hs'].includes(e.sourceId)) {
         this.tileErrors++;
         const now = Date.now();

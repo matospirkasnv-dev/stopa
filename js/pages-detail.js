@@ -321,13 +321,15 @@ export async function renderDetail(view, id) {
       try { player.pause(); setPlayIcon(false); } catch { /* ignore */ }
       toolbar.querySelectorAll('.seg')[0].querySelectorAll('button')[1].click(); // prepnúť na 2D
       bits.push('Grafika prehliadača sa pri 3D zobrazení preťažila, preto sa prehrávanie zastavilo a mapa sa prepla na 2D. Skúste znížiť prevýšenie terénu alebo zavrieť ďalšie karty.');
+    } else if (kind === 'style') {
+      bits.push('Mapu sa nepodarilo inicializovať: ' + (msg || 'neznáma chyba') + ' Pošlite mi prosím tento text.');
     } else if (kind === 'slow') {
       bits.push('Podklad mapy sa načítava neobvykle dlho – dlaždice sa k vám pravdepodobne nedostávajú (blokovač reklám, firewall alebo sieť). Trasa sa zobrazuje aj bez podkladu. Skúste iný podklad alebo 2D.' + (msg ? ' Chyba: ' + msg : ''));
     } else {
       bits.push(`Mapové dlaždice sa nenačítavajú (zdroj: ${src}). Podklad môže byť dočasne preťažený alebo blokovaný – skúste iný podklad.` + (msg ? ' Chyba: ' + msg : ''));
     }
     mapNote.replaceChildren(h('span', {}, bits[0]),
-      ...(kind !== 'context' ? Object.entries(BASES).map(([k, v]) => h('button', { class: 'btn ghost sm', onclick: () => { tm.setBase(k); settings.set({ base: k }); mapNote.classList.add('hidden'); } }, v.label)) : []),
+      ...(kind !== 'context' && kind !== 'style' ? Object.entries(BASES).map(([k, v]) => h('button', { class: 'btn ghost sm', onclick: () => { tm.setBase(k); settings.set({ base: k }); mapNote.classList.add('hidden'); } }, v.label)) : []),
       h('button', { class: 'btn ghost sm', onclick: () => mapNote.classList.add('hidden') }, 'Zavrieť'));
     mapNote.classList.remove('hidden');
   };
